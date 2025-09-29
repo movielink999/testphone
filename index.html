@@ -134,7 +134,8 @@
 
                 if (this.isMobile) {
                     // On mobile, only redirect if significant change (e.g., orientation or manual resize)
-                    if (widthChange > 100 || heightChange > 100) {
+                    // Use higher threshold to avoid triggering on address bar hide/show
+                    if (widthChange > 200 || heightChange > 200) {
                         this.redirect();
                     }
                 } else {
@@ -212,3 +213,4 @@
     </script>
 </body>
 </html>
+

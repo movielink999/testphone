@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Developer Mode Blocker</title>
     <style>
         body {
@@ -14,6 +14,7 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            touch-action: manipulation; /* Enable pinch zoom on mobile */
         }
         .container {
             text-align: center;
@@ -57,6 +58,10 @@
     <div class="container">
         <h1>Developer Mode Blocker</h1>
         <p>This page blocks access to developer tools. Try opening DevTools or resizing the window.</p>
+        <div id="statusIndicator" style="display: inline-block; padding: 10px 20px; border-radius: 50px; margin: 20px 0; font-weight: bold; background: rgba(46, 204, 113, 0.2); border: 2px solid #2ecc71;">
+            System Status: Normal
+        </div>
+        <p id="deviceInfo">Device: Desktop</p>
     </div>
 
     <div class="popup" id="blockPopup">
@@ -73,6 +78,8 @@
                 this.redirectUrl = redirectUrl;
                 this.threshold = threshold;
                 this.popupElement = document.getElementById('blockPopup');
+                this.statusElement = document.getElementById('statusIndicator');
+                this.deviceElement = document.getElementById('deviceInfo');
                 this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 this.visualViewport = window.visualViewport;
                 this.initialWidth = this.visualViewport ? this.visualViewport.width : window.innerWidth;
@@ -83,6 +90,10 @@
                 console.assert(this.initialHeight > 0, 'Initial height must be positive');
                 console.assert(typeof this.redirectUrl === 'string', 'Redirect URL must be a string');
                 console.assert(this.threshold > 0, 'Threshold must be positive');
+
+                this.updateDeviceInfo();
+                this.updateStatus('Normal');
+                console.log('DevToolsBlocker initialized:', { isMobile: this.isMobile, initialWidth: this.initialWidth, initialHeight: this.initialHeight });
 
                 this.init();
             }
@@ -137,6 +148,7 @@
             handleResize() {
                 const widthChange = Math.abs(window.innerWidth - this.initialWidth);
                 const heightChange = Math.abs(window.innerHeight - this.initialHeight);
+                console.log('Window resize detected:', { widthChange, heightChange, isMobile: this.isMobile });
 
                 if (this.isMobile) {
                     // On mobile, only redirect if significant change (e.g., orientation or manual resize)
@@ -203,6 +215,8 @@
             }
 
             showPopup() {
+                console.log('Showing popup for blocked action');
+                this.updateStatus('Action Blocked', true);
                 if (this.popupElement) {
                     this.popupElement.style.display = 'block';
                 }
@@ -214,7 +228,27 @@
                 }
             }
 
+            updateStatus(message, isWarning = false) {
+                if (this.statusElement) {
+                    this.statusElement.textContent = `System Status: ${message}`;
+                    if (isWarning) {
+                        this.statusElement.style.background = 'rgba(231, 76, 60, 0.2)';
+                        this.statusElement.style.borderColor = '#e74c3c';
+                    } else {
+                        this.statusElement.style.background = 'rgba(46, 204, 113, 0.2)';
+                        this.statusElement.style.borderColor = '#2ecc71';
+                    }
+                }
+            }
+
+            updateDeviceInfo() {
+                if (this.deviceElement) {
+                    this.deviceElement.textContent = `Device: ${this.isMobile ? 'Mobile' : 'Desktop'}`;
+                }
+            }
+
             redirect() {
+                console.log('Redirecting due to detected activity');
                 try {
                     window.location.href = this.redirectUrl;
                 } catch (error) {

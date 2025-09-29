@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Mode Blocker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            color: #666;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+            border-radius: 8px;
+        }
+        .popup h2 {
+            color: #d9534f;
+        }
+        .popup button {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Developer Mode Blocker</h1>
+        <p>This page blocks access to developer tools. Try opening DevTools or resizing the window.</p>
+    </div>
+
+    <div class="popup" id="blockPopup">
+        <h2>Access Blocked!</h2>
+        <p>Developer tools or unauthorized actions detected. This is not allowed.</p>
+        <button onclick="closePopup()">Close</button>
+    </div>
+
+    <script>
+        // Professional Developer Mode Blocker Class
+        class DevToolsBlocker {
+            constructor(redirectUrl = 'https://example.com', threshold = 160) {
+                this.initialWidth = window.innerWidth;
+                this.initialHeight = window.innerHeight;
+                this.devToolsOpen = false;
+                this.redirectUrl = redirectUrl;
+                this.threshold = threshold;
+                this.popupElement = document.getElementById('blockPopup');
+
+                // Assertions for pro-level code
+                console.assert(this.initialWidth > 0, 'Initial width must be positive');
+                console.assert(this.initialHeight > 0, 'Initial height must be positive');
+                console.assert(typeof this.redirectUrl === 'string', 'Redirect URL must be a string');
+                console.assert(this.threshold > 0, 'Threshold must be positive');
+
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.startMonitoring();
+            }
+
+            bindEvents() {
+                // Block DevTools shortcuts
+                document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+
+                // Block right-click
+                document.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
+
+                // Detect window resize
+                window.addEventListener('resize', () => this.handleResize());
+
+                // Detect orientation change
+                window.addEventListener('orientationchange', () => this.handleOrientationChange());
+
+                // Visibility change
+                document.addEventListener('visibilitychange', () => this.handleVisibilityChange());
+            }
+
+            startMonitoring() {
+                setInterval(() => this.checkDevTools(), 500);
+            }
+
+            handleKeyDown(e) {
+                const isBlockedKey = e.key === 'F12' ||
+                    (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) ||
+                    (e.ctrlKey && e.key.toUpperCase() === 'U');
+
+                if (isBlockedKey) {
+                    e.preventDefault();
+                    this.showPopup();
+                }
+            }
+
+            handleContextMenu(e) {
+                e.preventDefault();
+                this.showPopup();
+            }
+
+            handleResize() {
+                if (window.innerWidth !== this.initialWidth || window.innerHeight !== this.initialHeight) {
+                    this.redirect();
+                }
+            }
+
+            handleOrientationChange() {
+                this.redirect();
+            }
+
+            handleVisibilityChange() {
+                if (!document.hidden) {
+                    this.checkDevToolsOnFocus();
+                }
+            }
+
+            checkDevTools() {
+                try {
+                    const widthDiff = window.outerWidth - window.innerWidth;
+                    const heightDiff = window.outerHeight - window.innerHeight;
+
+                    if ((widthDiff > this.threshold || heightDiff > this.threshold) && !this.devToolsOpen) {
+                        this.devToolsOpen = true;
+                        this.redirect();
+                    } else if (widthDiff <= this.threshold && heightDiff <= this.threshold && this.devToolsOpen) {
+                        this.devToolsOpen = false;
+                    }
+                } catch (error) {
+                    console.error('Error in DevTools check:', error);
+                }
+            }
+
+            checkDevToolsOnFocus() {
+                try {
+                    const widthDiff = window.outerWidth - window.innerWidth;
+                    const heightDiff = window.outerHeight - window.innerHeight;
+                    if (widthDiff > this.threshold || heightDiff > this.threshold) {
+                        this.redirect();
+                    }
+                } catch (error) {
+                    console.error('Error in visibility check:', error);
+                }
+            }
+
+            showPopup() {
+                if (this.popupElement) {
+                    this.popupElement.style.display = 'block';
+                }
+            }
+
+            closePopup() {
+                if (this.popupElement) {
+                    this.popupElement.style.display = 'none';
+                }
+            }
+
+            redirect() {
+                try {
+                    window.location.href = this.redirectUrl;
+                } catch (error) {
+                    console.error('Error redirecting:', error);
+                }
+            }
+        }
+
+        // Initialize the blocker
+        const blocker = new DevToolsBlocker();
+
+        // Expose closePopup for button
+        window.closePopup = () => blocker.closePopup();
+    </script>
+</body>
+</html>

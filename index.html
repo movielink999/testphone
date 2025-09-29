@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Developer Mode Blocker</title>
+    <style>
+        * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            touch-action: manipulation;
+            overflow: hidden;
+        }
+        
+        .container {
+            text-align: center;
+            background: white;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-radius: 12px;
+            max-width: 90%;
+            width: 500px;
+            transition: transform 0.3s ease;
+        }
+        
+        .container:hover {
+            transform: translateY(-5px);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+        
+        p {
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 25px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        .popup h2 {
+            color: #d9534f;
+            margin-top: 0;
+        }
+        
+        .popup button {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        
+        .popup button:hover {
+            background: #e53935;
+        }
+        
+        #statusIndicator {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 50px;
+            margin: 20px 0;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .status-normal {
+            background: rgba(46, 204, 113, 0.2);
+            border: 2px solid #2ecc71;
+            color: #27ae60;
+        }
+        
+        .status-warning {
+            background: rgba(231, 76, 60, 0.2);
+            border: 2px solid #e74c3c;
+            color: #c0392b;
+        }
+        
+        .info-panel {
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .info-panel h3 {
+            margin-top: 0;
+            color: #2980b9;
+        }
+        
+        .info-panel ul {
+            padding-left: 20px;
+            margin-bottom: 0;
+        }
+        
+        .info-panel li {
+            margin-bottom: 8px;
+        }
+        
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Developer Mode Blocker</h1>
+        <p>This page implements advanced protection against developer tools and source code inspection.</p>
+        
+        <div class="info-panel">
+            <h3>Protected Actions:</h3>
+            <ul>
+                <li>Developer Tools (F12, Ctrl+Shift+I)</li>
+                <li>Right-click context menu</li>
+                <li>View Source (Ctrl+U)</li>
+                <li>Window resizing detection</li>
+                <li>Mobile orientation changes</li>
+            </ul>
+        </div>
+        
+        <div id="statusIndicator" class="status-normal">
+            System Status: Normal
+        </div>
+        
+        <p id="deviceInfo">Device: Desktop</p>
+        
+        <div class="footer">
+            Protected Content &copy; 2023 | All Rights Reserved
+        </div>
+    </div>
+
+    <div class="popup" id="blockPopup">
+        <h2>Access Blocked!</h2>
+        <p>Developer tools or unauthorized actions detected. This is not allowed.</p>
+        <button onclick="closePopup()">Close</button>
+    </div>
+
+    <script>
+        // Professional Developer Mode Blocker with Enhanced Protection
+        class DevToolsBlocker {
+            constructor(redirectUrl = 'https://example.com', threshold = 160) {
+                this.devToolsOpen = false;
+                this.redirectUrl = redirectUrl;
+                this.threshold = threshold;
+                this.popupElement = document.getElementById('blockPopup');
+                this.statusElement = document.getElementById('statusIndicator');
+                this.deviceElement = document.getElementById('deviceInfo');
+                this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                this.visualViewport = window.visualViewport;
+                this.initialWidth = this.visualViewport ? this.visualViewport.width : window.innerWidth;
+                this.initialHeight = this.visualViewport ? this.visualViewport.height : window.innerHeight;
+                
+                // Enhanced protection variables
+                this.lastKnownWidth = this.initialWidth;
+                this.lastKnownHeight = this.initialHeight;
+                this.zoomDetectionEnabled = true;
+                this.blockedActions = 0;
+                this.maxBlockedActions = 5;
+                
+                // Assertions for pro-level code
+                console.assert(this.initialWidth > 0, 'Initial width must be positive');
+                console.assert(this.initialHeight > 0, 'Initial height must be positive');
+                console.assert(typeof this.redirectUrl === 'string', 'Redirect URL must be a string');
+                console.assert(this.threshold > 0, 'Threshold must be positive');
+                
+                // Initialize
+                this.updateDeviceInfo();
+                this.updateStatus('System Secured');
+                this.addProtectionLayers();
+                console.log('DevToolsBlocker initialized:', { 
+                    isMobile: this.isMobile, 
+                    initialWidth: this.initialWidth, 
+                    initialHeight: this.initialHeight 
+                });
+                
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.startMonitoring();
+                this.obfuscateCode();
+            }
+
+            addProtectionLayers() {
+                // Prevent text selection
+                document.addEventListener('selectstart', (e) => {
+                    e.preventDefault();
+                    return false;
+                });
+                
+                // Prevent drag and drop
+                document.addEventListener('dragstart', (e) => {
+                    e.preventDefault();
+                    return false;
+                });
+                
+                // Prevent image saving
+                document.addEventListener('contextmenu', (e) => {
+                    if (e.target.tagName === 'IMG') {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+                
+                // Disable keyboard shortcuts for saving
+                document.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && 
+                        (e.key === 's' || e.key === 'S')) {
+                        e.preventDefault();
+                        this.showPopup();
+                        return false;
+                    }
+                });
+            }
+
+            bindEvents() {
+                // Block DevTools shortcuts
+                document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+
+                // Block right-click
+                document.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
+
+                // Detect window resize
+                window.addEventListener('resize', () => this.handleResize());
+
+                // Detect visual viewport resize if available (better for mobile)
+                if (this.visualViewport) {
+                    this.visualViewport.addEventListener('resize', () => this.handleVisualViewportResize());
+                }
+
+                // Detect orientation change
+                window.addEventListener('orientationchange', () => this.handleOrientationChange());
+
+                // Visibility change
+                document.addEventListener('visibilitychange', () => this.handleVisibilityChange());
+                
+                // Prevent leaving page with unsaved changes
+                window.addEventListener('beforeunload', (e) => {
+                    if (this.devToolsOpen) {
+                        e.preventDefault();
+                        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                    }
+                });
+                
+                // Block console access attempts
+                this.overrideConsoleMethods();
+            }
+
+            startMonitoring() {
+                setInterval(() => this.checkDevTools(), 500);
+                setInterval(() => this.checkForInspection(), 1000);
+            }
+
+            handleKeyDown(e) {
+                const isBlockedKey = e.key === 'F12' ||
+                    (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) ||
+                    (e.ctrlKey && e.key.toUpperCase() === 'U') ||
+                    (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === 'C') ||
+                    (e.ctrlKey && e.key.toUpperCase() === 'S');
+
+                if (isBlockedKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.blockedActions++;
+                    this.showPopup();
+                    
+                    if (this.blockedActions >= this.maxBlockedActions) {
+                        this.redirect();
+                    }
+                    return false;
+                }
+            }
+
+            handleContextMenu(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.blockedActions++;
+                this.showPopup();
+                
+                if (this.blockedActions >= this.maxBlockedActions) {
+                    this.redirect();
+                }
+                return false;
+            }
+
+            handleResize() {
+                const widthChange = Math.abs(window.innerWidth - this.lastKnownWidth);
+                const heightChange = Math.abs(window.innerHeight - this.lastKnownHeight);
+                
+                // Update last known dimensions
+                this.lastKnownWidth = window.innerWidth;
+                this.lastKnownHeight = window.innerHeight;
+                
+                console.log('Window resize detected:', { 
+                    widthChange, 
+                    heightChange, 
+                    isMobile: this.isMobile 
+                });
+
+                if (this.isMobile) {
+                    // On mobile, only redirect if significant change (e.g., orientation or manual resize)
+                    // Use higher threshold to avoid triggering on address bar hide/show
+                    if (widthChange > 200 || heightChange > 200) {
+                        this.redirect();
+                    }
+                } else {
+                    // On desktop, redirect on any significant change
+                    if (widthChange > 50 || heightChange > 50) {
+                        this.redirect();
+                    }
+                }
+            }
+
+            handleVisualViewportResize() {
+                if (this.visualViewport && this.zoomDetectionEnabled) {
+                    const widthChange = Math.abs(this.visualViewport.width - this.initialWidth);
+                    const heightChange = Math.abs(this.visualViewport.height - this.initialHeight);
+
+                    // Only redirect on significant visual viewport changes
+                    // This prevents redirects on pinch-to-zoom
+                    if (widthChange > 300 || heightChange > 300) {
+                        this.redirect();
+                    }
+                }
+            }
+
+            handleOrientationChange() {
+                // Don't immediately redirect on orientation change
+                // Wait for resize to handle it
+                console.log('Orientation change detected');
+            }
+
+            handleVisibilityChange() {
+                if (!document.hidden) {
+                    this.checkDevToolsOnFocus();
+                }
+            }
+
+            checkDevTools() {
+                try {
+                    const widthDiff = window.outerWidth - window.innerWidth;
+                    const heightDiff = window.outerHeight - window.innerHeight;
+
+                    if ((widthDiff > this.threshold || heightDiff > this.threshold) && !this.devToolsOpen) {
+                        this.devToolsOpen = true;
+                        this.updateStatus('DevTools Detected', true);
+                        this.redirect();
+                    } else if (widthDiff <= this.threshold && heightDiff <= this.threshold && this.devToolsOpen) {
+                        this.devToolsOpen = false;
+                        this.updateStatus('System Secured');
+                    }
+                } catch (error) {
+                    console.error('Error in DevTools check:', error);
+                }
+            }
+
+            checkDevToolsOnFocus() {
+                try {
+                    const widthDiff = window.outerWidth - window.innerWidth;
+                    const heightDiff = window.outerHeight - window.innerHeight;
+                    if (widthDiff > this.threshold || heightDiff > this.threshold) {
+                        this.redirect();
+                    }
+                } catch (error) {
+                    console.error('Error in visibility check:', error);
+                }
+            }
+            
+            checkForInspection() {
+                // Check if debugger is attached
+                const start = Date.now();
+                debugger;
+                const end = Date.now();
+                
+                if (end - start > 100) {
+                    this.updateStatus('Debugger Detected', true);
+                    this.redirect();
+                }
+            }
+            
+            overrideConsoleMethods() {
+                // Override console methods to prevent inspection
+                const originalConsole = {
+                    log: console.log,
+                    warn: console.warn,
+                    error: console.error,
+                    info: console.info,
+                    debug: console.debug
+                };
+                
+                console.log = function() {
+                    originalConsole.log.apply(console, arguments);
+                    // You could redirect here if you want to be more aggressive
+                };
+                
+                console.warn = function() {
+                    originalConsole.warn.apply(console, arguments);
+                };
+                
+                console.error = function() {
+                    originalConsole.error.apply(console, arguments);
+                };
+                
+                console.info = function() {
+                    originalConsole.info.apply(console, arguments);
+                };
+                
+                console.debug = function() {
+                    originalConsole.debug.apply(console, arguments);
+                };
+            }
+
+            showPopup() {
+                console.log('Showing popup for blocked action');
+                this.updateStatus('Action Blocked', true);
+                if (this.popupElement) {
+                    this.popupElement.style.display = 'block';
+                }
+            }
+
+            closePopup() {
+                if (this.popupElement) {
+                    this.popupElement.style.display = 'none';
+                }
+                this.updateStatus('System Secured');
+            }
+
+            updateStatus(message, isWarning = false) {
+                if (this.statusElement) {
+                    this.statusElement.textContent = `System Status: ${message}`;
+                    if (isWarning) {
+                        this.statusElement.className = 'status-warning';
+                    } else {
+                        this.statusElement.className = 'status-normal';
+                    }
+                }
+            }
+
+            updateDeviceInfo() {
+                if (this.deviceElement) {
+                    this.deviceElement.textContent = `Device: ${this.isMobile ? 'Mobile' : 'Desktop'}`;
+                }
+            }
+            
+            obfuscateCode() {
+                // This is a simple obfuscation technique
+                // In production, use proper obfuscation tools
+                setTimeout(() => {
+                    document.body.innerHTML = document.body.innerHTML;
+                }, 100);
+            }
+
+            redirect() {
+                console.log('Redirecting due to detected activity');
+                try {
+                    window.location.href = this.redirectUrl;
+                } catch (error) {
+                    console.error('Error redirecting:', error);
+                }
+            }
+        }
+
+        // Initialize the blocker
+        const blocker = new DevToolsBlocker();
+
+        // Expose closePopup for button
+        window.closePopup = () => blocker.closePopup();
+        
+        // Prevent default behavior for certain keys
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) ||
+                (e.ctrlKey && e.key.toUpperCase() === 'U')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>

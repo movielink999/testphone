@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Mode Blocker (Improved)</title>
+    <style>
+        /* Basic page style - not for the popup */
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            color: #666;
+        }
+        /* Hide the old popup */
+        #blockPopup {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Developer Mode Blocker (Improved)</h1>
+        <p>This page attempts to block access to developer tools but allows normal zooming. Try opening DevTools or resizing the window significantly.</p>
+    </div>
+
+    <script>
+        //<![CDATA[
+
+        // Obfuscation helper function (not true obfuscation but adds complexity)
+        function _0x3f8b(d, e) {
+            var f = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/';
+            var g = '';
+            var h, i, j = 0;
+            while (j < d.length) {
+                h = d.charCodeAt(j++);
+                i = d.charCodeAt(j++);
+                var k = d.charCodeAt(j++);
+                var l = h >> 2;
+                var m = ((h & 3) << 4) | (i >> 4);
+                var n = ((i & 15) << 2) | (k >> 6);
+                var o = k & 63;
+                if (isNaN(i)) n = o = 64;
+                else if (isNaN(k)) o = 64;
+                g += f.charAt(l) + f.charAt(m) + f.charAt(n) + f.charAt(o);
+            }
+            return g;
+        }
+
+        // Improved Developer Tools Blocker Class
+        class DevToolsBlocker {
+            constructor(redirectUrl = 'https://example.com', threshold = 160, zoomThreshold = 0.1) { // Added zoomThreshold
+                this.initialWidth = window.innerWidth;
+                this.initialHeight = window.innerHeight;
+                this.devToolsOpen = false;
+                this.redirectUrl = redirectUrl;
+                this.threshold = threshold;
+                this.zoomThreshold = zoomThreshold; // Threshold for detecting zoom vs dev tools
+                this.popupElement = null; // Will be created by JS
+                this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                this.lastZoomCheckTime = 0;
+                this.zoomCheckInterval = 200; // ms between zoom checks
+                this.zoomFactor = 1; // Track estimated zoom factor
+                this.updateZoomFactor(); // Initial zoom factor
+
+                // Assertions for pro-level code
+                console.assert(this.initialWidth > 0, 'Initial width must be positive');
+                console.assert(this.initialHeight > 0, 'Initial height must be positive');
+                console.assert(typeof this.redirectUrl === 'string', 'Redirect URL must be a string');
+                console.assert(this.threshold > 0, 'Threshold must be positive');
+                console.assert(this.zoomThreshold >= 0, 'Zoom threshold must be non-negative');
+
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.startMonitoring();
+            }
+
+            bindEvents() {
+                // Block DevTools shortcuts
+                document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+                // Block right-click
+                document.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
+                // Detect window resize - handle zoom differently
+                window.addEventListener('resize', () => this.handleResize());
+                // Detect orientation change
+                window.addEventListener('orientationchange', () => this.handleOrientationChange());
+                // Visibility change
+                document.addEventListener('visibilitychange', () => this.handleVisibilityChange());
+
+                // Listen for wheel events for potential zoom detection (though less reliable)
+                // window.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
+            }
+
+            startMonitoring() {
+                // Main DevTools detection loop
+                setInterval(() => this.checkDevTools(), 500);
+
+                // Separate loop for zoom handling to reduce frequency
+                setInterval(() => this.checkZoomAndResize(), this.zoomCheckInterval);
+            }
+
+            handleKeyDown(e) {
+                const isBlockedKey = e.key === 'F12' ||
+                    (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) ||
+                    (e.ctrlKey && e.key.toUpperCase() === 'U');
+                if (isBlockedKey) {
+                    e.preventDefault();
+                    this.showPopup();
+                }
+            }
+
+            handleContextMenu(e) {
+                e.preventDefault();
+                this.showPopup();
+            }
+
+            handleResize() {
+                // Store new dimensions immediately for reference
+                this.initialWidth = window.innerWidth;
+                this.initialHeight = window.innerHeight;
+            }
+
+            handleOrientationChange() {
+                // Reset dimensions on orientation change, then check after a delay
+                setTimeout(() => {
+                    this.initialWidth = window.innerWidth;
+                    this.initialHeight = window.innerHeight;
+                    // A significant change might still occur after orientation, check dev tools
+                    this.checkDevTools();
+                }, 100);
+            }
+
+            handleVisibilityChange() {
+                if (!document.hidden) {
+                    this.checkDevToolsOnFocus();
+                }
+            }
+
+            updateZoomFactor() {
+                // Estimate zoom factor based on devicePixelRatio
+                // Note: devicePixelRatio itself doesn't always change with browser zoom on all systems
+                // This is a fallback heuristic
+                 this.zoomFactor = window.devicePixelRatio || 1;
+            }
+
+            checkZoomAndResize() {
+                const now = Date.now();
+                if (now - this.lastZoomCheckTime < this.zoomCheckInterval) {
+                    return; // Throttle checks
+                }
+                this.lastZoomCheckTime = now;
+
+                const currentWidth = window.innerWidth;
+                const currentHeight = window.innerHeight;
+                const widthChange = Math.abs(currentWidth - this.initialWidth);
+                const heightChange = Math.abs(currentHeight - this.initialHeight);
+
+                // Calculate potential zoom factor based on size change
+                // This is a simplified heuristic and might not be 100% accurate
+                let estimatedZoomChange = Math.min(
+                    currentWidth / this.initialWidth,
+                    currentHeight / this.initialHeight
+                );
+
+                // Check if the change is likely due to zooming
+                // Zoom usually changes both dimensions proportionally and smoothly
+                const isLikelyZoom = Math.abs(estimatedZoomChange - this.zoomFactor) > this.zoomThreshold &&
+                                    widthChange > 10 && heightChange > 10; // Reasonable minimum change for zoom
+
+                if (isLikelyZoom) {
+                    // Update the estimated zoom factor
+                    this.zoomFactor = estimatedZoomChange;
+                    // console.log("Zoom detected, factor estimated:", this.zoomFactor); // Debug
+                    // Do NOT redirect for zoom
+                    return;
+                }
+
+                // If it's not a clear zoom, check for dev tools using the original method
+                // But only if the change is significant and doesn't match zoom pattern
+                const isSignificantChange = widthChange > 50 || heightChange > 50; // Adjust threshold as needed
+                const isProportional = Math.abs(widthChange - heightChange) < 50; // Allow some tolerance
+
+                if (isSignificantChange && !isProportional) {
+                    // Likely dev tools, as they often create disproportionate changes or large changes in one dimension
+                    this.checkDevTools();
+                }
+            }
+
+
+            checkDevTools() {
+                try {
+                    // Heuristic 1: Check outer/inner dimension difference
+                    const widthDiff = Math.abs(window.outerWidth - window.innerWidth);
+                    const heightDiff = Math.abs(window.outerHeight - window.innerHeight);
+
+                    // Heuristic 2: Check if console is open (can be unreliable, but worth a try)
+                    let devToolsOpen = false;
+                    const threshold = this.threshold;
+
+                    // Check dimension difference
+                    if (widthDiff > threshold || heightDiff > threshold) {
+                        devToolsOpen = true;
+                    }
+
+                    // Heuristic 3: Check console output behavior (very unreliable, often blocked)
+                    // Temporarily disabled due to unreliability
+                    /*
+                    console.log(" ");
+                    if (performance.memory && performance.memory.usedJSHeapSize) {
+                        // If memory info is available and console.log worked, likely not open
+                    } else {
+                        // If memory info is unavailable, might be open
+                        devToolsOpen = true;
+                    }
+                    */
+
+                    if (devToolsOpen && !this.devToolsOpen) {
+                        this.devToolsOpen = true;
+                        this.redirect();
+                    } else if (!devToolsOpen && this.devToolsOpen) {
+                        this.devToolsOpen = false;
+                    }
+                } catch (error) {
+                    console.error('Error in DevTools check:', error);
+                    // Potentially redirect on error if it indicates interference?
+                    // For now, just log.
+                }
+            }
+
+            checkDevToolsOnFocus() {
+                try {
+                    // Perform the same check when the window regains focus
+                    this.checkDevTools();
+                } catch (error) {
+                    console.error('Error in visibility check:', error);
+                }
+            }
+
+            showPopup() {
+                // Remove existing popup if present
+                if (this.popupElement && document.body.contains(this.popupElement)) {
+                    document.body.removeChild(this.popupElement);
+                }
+
+                // Create the popup container div using only JS
+                this.popupElement = document.createElement('div');
+                // Apply styles directly using JS
+                this.popupElement.style.position = 'fixed';
+                this.popupElement.style.top = '50%';
+                this.popupElement.style.left = '50%';
+                this.popupElement.style.transform = 'translate(-50%, -50%)';
+                this.popupElement.style.backgroundColor = '#fff';
+                this.popupElement.style.padding = '25px 30px'; // Increased padding for PC UX
+                this.popupElement.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.5), 0 6px 30px rgba(0, 0, 0, 0.3)'; // Enhanced shadow for PC UX
+                this.popupElement.style.zIndex = '99999';
+                this.popupElement.style.borderRadius = '10px'; // Softer corners
+                this.popupElement.style.textAlign = 'center';
+                this.popupElement.style.maxWidth = '400px'; // Max width for PC UX
+                this.popupElement.style.width = '90%'; // Responsive width
+                this.popupElement.style.fontFamily = 'Arial, sans-serif'; // Ensure font
+
+                // Create the heading
+                const heading = document.createElement('h2');
+                heading.textContent = 'Access Blocked!';
+                heading.style.color = '#d32f2f'; // Darker red for better contrast
+                heading.style.marginTop = '0';
+                heading.style.marginBottom = '15px'; // Space below heading
+                heading.style.fontSize = '24px'; // Larger font for PC UX
+
+                // Create the message paragraph
+                const message = document.createElement('p');
+                message.textContent = 'Developer tools or unauthorized actions detected. This is not allowed.';
+                message.style.color = '#666';
+                message.style.marginBottom = '20px'; // Space below message
+                message.style.fontSize = '16px'; // Readable font size
+
+                // Create the close button
+                const button = document.createElement('button');
+                button.textContent = 'Close';
+                button.style.backgroundColor = '#f44336';
+                button.style.color = 'white';
+                button.style.border = 'none';
+                button.style.padding = '12px 24px'; // Increased padding for PC UX
+                button.style.cursor = 'pointer';
+                button.style.borderRadius = '5px';
+                button.style.fontSize = '16px'; // Larger font for PC UX
+                button.style.fontWeight = 'bold';
+                button.style.transition = 'background-color 0.3s'; // Smooth hover effect
+                // Add hover effect using JS event listeners
+                button.addEventListener('mouseenter', () => {
+                    button.style.backgroundColor = '#d32f2f'; // Darker red on hover
+                });
+                button.addEventListener('mouseleave', () => {
+                    button.style.backgroundColor = '#f44336'; // Original red on leave
+                });
+                button.addEventListener('click', () => this.closePopup());
+
+                // Append elements to the popup
+                this.popupElement.appendChild(heading);
+                this.popupElement.appendChild(message);
+                this.popupElement.appendChild(button);
+
+                // Append the popup to the body
+                document.body.appendChild(this.popupElement);
+            }
+
+            closePopup() {
+                if (this.popupElement && document.body.contains(this.popupElement)) {
+                    document.body.removeChild(this.popupElement);
+                    this.popupElement = null;
+                }
+            }
+
+            redirect() {
+                try {
+                    // Optional: Show popup briefly before redirecting
+                    // this.showPopup();
+                    // setTimeout(() => {
+                        window.location.href = this.redirectUrl;
+                    // }, 1500); // Redirect after 1.5 seconds if showing popup
+                } catch (error) {
+                    console.error('Error redirecting:', error);
+                }
+            }
+        }
+
+        // Initialize the blocker when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+             const blocker = new DevToolsBlocker('https://example.com', 160, 0.15); // Example with custom zoom threshold
+        });
+
+        //]]>
+    </script>
+</body>
+</html>
